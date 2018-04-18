@@ -1,0 +1,124 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ output extension=".g.cs" #>
+// NB: generated file do not modify!
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using JetBrains.Annotations;
+namespace ResourceSyncSharp.Tags
+{
+<# var tagClasses = new [] {
+	// ---------------------------------------------------------------------------------------------------------------------------------------------
+	// the classes declared here will be below expanded during compile into basic typed containers with implicit conversion + equality operators etc
+	// ---------------------------------------------------------------------------------------------------------------------------------------------
+	new { Name = "JsonString",		InternalType = "string", AllowCreateFromBlank=true,	 IsValueType=false, IsAddable=true,  IsConvertible=true },
+	new { Name = "XmlString",		InternalType = "string", AllowCreateFromBlank=true,	 IsValueType=false, IsAddable=true,  IsConvertible=true },
+    new { Name = "ResourceSet",		InternalType = "string", AllowCreateFromBlank=false, IsValueType=false, IsAddable=true,  IsConvertible=true },
+    new { Name = "ResourceName",    InternalType = "string", AllowCreateFromBlank=false, IsValueType=false, IsAddable=true,  IsConvertible=true },
+    new { Name = "ResourceValue",   InternalType = "string", AllowCreateFromBlank=true,	 IsValueType=false, IsAddable=true,  IsConvertible=true },
+    new { Name = "HRef",            InternalType = "string", AllowCreateFromBlank=true,	 IsValueType=false, IsAddable=true,  IsConvertible=true },
+    new { Name = "IsOfInterest",    InternalType = "bool",	 AllowCreateFromBlank=true,  IsValueType=true,  IsAddable=false, IsConvertible=false },
+	new { Name = "ConnectionString",InternalType = "string", AllowCreateFromBlank=false, IsValueType=false, IsAddable=true,  IsConvertible=true },
+	// ---------------------------------------------------------------------------------------------------------------------------------------------
+	};
+	tagClasses.ToList().ForEach(tagClass => { #>
+	// ReSharper disable once ClassCanBeSealed.Global
+    // ReSharper disable once PartialTypeWithSinglePart
+	[Serializable]<# if (tagClass.IsConvertible) { #>  
+    [TypeConverter(typeof(<#= tagClass.Name #>Converter))] <# } #>
+    [ExcludeFromCodeCoverage]  
+	public partial class <#= tagClass.Name #> : IEquatable<<#= tagClass.Name #>>, IComparable<<#= tagClass.Name #>>, IComparable
+	{ 
+        [PublicAPI] public static implicit operator <#= tagClass.Name #> (<#= tagClass.InternalType #> val) { return new <#= tagClass.Name #>(val); }
+		[PublicAPI] public <#= tagClass.InternalType #> Value { [Pure] get; private set; }
+		[PublicAPI, DebuggerStepThrough] public <#= tagClass.Name #> (<#= tagClass.InternalType #> val) 
+        {
+            <# if (!tagClass.AllowCreateFromBlank) { #>if (string.IsNullOrWhiteSpace(val)) 
+                throw new ArgumentOutOfRangeException();
+<#        } #>
+            Value = val; 
+        }
+<# if (!tagClass.AllowCreateFromBlank) { #>
+		[PublicAPI, DebuggerStepThrough] public <#= tagClass.Name #> () { }
+<# } #>
+		[PublicAPI, Pure] public static implicit operator <#= tagClass.InternalType #>(<#= tagClass.Name #> container) { <# if (!tagClass.IsValueType) { #> return container == null ? null : container.Value; <# } else { #> return container.Value; <# } #> }
+		[PublicAPI, Pure] public override string ToString() { return Convert.ToString(Value); }
+		[PublicAPI, Pure] public bool Equals(<#= tagClass.Name #> other)
+	    {
+	        if (ReferenceEquals(null, other))
+	            return false;
+	        if (ReferenceEquals(this, other))
+	            return true;
+	        var result = <#= tagClass.InternalType #>.Equals(Value, other.Value);
+            return result;
+	    }
+	    [PublicAPI, Pure] public override bool Equals(object obj)
+	    {
+	        if (ReferenceEquals(null, obj))
+	            return false;
+	        if (ReferenceEquals(this, obj))
+	            return true;
+	        var result = obj is <#= tagClass.Name #> && Equals((<#= tagClass.Name #>) obj);
+            return result;
+	    }
+	    [PublicAPI, Pure] public override int GetHashCode()
+	    {
+	        return <# if (!tagClass.IsValueType) { #> (Value != null ? Value.GetHashCode() : 0);
+ <# } else { #> Value.GetHashCode(); <# } #>
+	    }
+	    [PublicAPI, Pure] public static bool operator ==(<#= tagClass.Name #> left, <#= tagClass.Name #> right)
+	    {
+	        return Equals(left, right);
+	    }
+	    [PublicAPI, Pure] public static bool operator !=(<#= tagClass.Name #> left, <#= tagClass.Name #> right)
+	    {
+	        return !Equals(left, right);
+	    }<# if (tagClass.IsAddable) { #>  
+	    [PublicAPI] public static <#= tagClass.Name #> operator +(<#= tagClass.Name #> left, <#= tagClass.InternalType #> right)
+	    {
+			return new <#= tagClass.Name #>(left.Value + right);
+	    }
+<# } #>
+        [PublicAPI] public int CompareTo(<#= tagClass.Name #> other)
+        {
+            // ReSharper disable once StringCompareToIsCultureSpecific
+            return Value.CompareTo(other.Value);
+        }
+        [PublicAPI] public int CompareTo(object obj)
+        {
+            var other = obj as <#= tagClass.Name #>;
+            // ReSharper disable once StringCompareToIsCultureSpecific
+            return other == null ? 0 : Value.CompareTo(other.Value);
+        }
+	}
+
+<#        if (tagClass.IsConvertible) { #>  
+    // type converter for ease of webapi routing
+    [ExcludeFromCodeCoverage]  
+    class <#=                tagClass.Name #>Converter : TypeConverter
+    {
+        public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+        {
+            if (sourceType == typeof(string))
+            {
+                return true;
+            }
+            return base.CanConvertFrom(context, sourceType);
+        }
+
+        public override object ConvertFrom(ITypeDescriptorContext context, 
+            CultureInfo culture, object value)
+        {
+            if (value is string)
+            {
+                return new <#=                tagClass.Name #>(value as string);
+            }
+            return base.ConvertFrom(context, culture, value);
+        }
+    }
+<#        }}); #>
+}
